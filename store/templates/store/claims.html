@@ -1,0 +1,472 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claims History - British Airways Support</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #01122c;
+            color: #333333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            justify-content: space-between;
+        }
+
+        header {
+            background-color: transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 40px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-image {
+            height: 35px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        nav {
+            display: flex;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 32px;
+        }
+
+        nav ul li a {
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 400;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+
+        nav ul li a:hover {
+            opacity: 1;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .language-select {
+            color: #ffffff;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-login-btn {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .header-login-btn:hover {
+            border-color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #ffffff;
+        }
+
+        .hero-banner {
+            position: relative;
+            background-image: url('https://ba.scene7.com/is/image/ba/london-sky-line-sunset:16-9?wid=1200&hei=450&fit=crop&fmt=webp&qlt=75&resMode=sharp2&op_blur=0');
+            background-size: cover;
+            background-position: center;
+            text-align: center;
+            padding: 150px 20px 80px 20px;
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(1, 18, 44, 0.4), rgba(1, 18, 44, 0.95));
+            pointer-events: none;
+        }
+
+        .hero-card {
+            background: rgba(22, 34, 52, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 8px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 790px;
+            padding: 38px 44px;
+            text-align: left;
+            position: relative;
+            z-index: 5;
+            margin: 0 auto;
+        }
+
+        .hero-card .hero-eyebrow {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            opacity: 0.9;
+        }
+
+        .hero-card h1 {
+            color: #ffffff;
+            font-size: 42px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-card p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+
+        .main-container {
+            display: flex;
+            justify-content: center;
+            padding: 0 20px 60px 20px;
+            margin-top: -20px;
+            flex: 1;
+            position: relative;
+            z-index: 6;
+            width: 100%;
+        }
+
+        .content-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 960px;
+            padding: 48px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            color: #333333;
+            margin: 0 auto;
+        }
+
+        .content-card h2 {
+            font-size: 24px;
+            color: #1b6ca8;
+            margin-top: 35px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+
+        .content-card h2:first-of-type {
+            margin-top: 0;
+        }
+
+        .content-card p {
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #555555;
+        }
+
+        .content-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .content-table th, .content-table td {
+            border: 1px solid #dcdcdc;
+            padding: 12px 16px;
+            text-align: left;
+        }
+
+        .content-table th {
+            background-color: #1b6ca8;
+            color: white;
+            font-weight: 600;
+        }
+
+        .content-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-approved {
+            background-color: #e2fcd6;
+            color: #2b7a0b;
+        }
+
+        .badge-cancelled {
+            background-color: #ffeaea;
+            color: #a81b1b;
+        }
+
+        .no-claims {
+            text-align: center;
+            padding: 30px;
+            color: #777777;
+            font-style: italic;
+        }
+
+        .cookie-footer {
+            background-color: #01122c;
+            color: #ffffff;
+            padding: 25px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cookie-text {
+            max-width: 700px;
+            line-height: 1.4;
+            opacity: 0.8;
+        }
+
+        .cookie-text a {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        .cookie-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .cookie-btn {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .cookie-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #ffffff;
+        }
+
+        @media (max-width: 900px) {
+            header { padding: 15px 20px; }
+            nav ul { gap: 15px; }
+            nav ul li a { font-size: 14px; }
+            .hero-card { padding: 28px 24px; }
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 15px 20px; }
+            nav {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background-color: #01122c;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                padding: 20px;
+                z-index: 1000;
+            }
+            nav.nav-active { display: block; }
+            nav ul { flex-direction: column; gap: 15px; align-items: center; }
+            .menu-toggle { display: block; }
+            .hero-banner { padding: 110px 15px 60px 15px; min-height: 400px; }
+            .hero-card h1 { font-size: 28px; }
+            .main-container { padding: 0 10px 30px 10px; margin-top: -10px; }
+            .content-card { padding: 24px 18px; }
+            .cookie-footer { flex-direction: column; gap: 15px; text-align: center; padding: 20px; }
+            .cookie-buttons { width: 100%; justify-content: center; flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <a href="{% url 'home' %}">
+            <img src="{% static 'store/img/british.png' %}" alt="British Airways Logo" class="logo-image"></a>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'how_it_works' %}">How it works</a></li>
+                <li><a href="{% url 'air_passenger_rights' %}">Your rights</a></li>
+                <li><a href="#">FAQ</a></li>
+                <li><a href="#">Partnership</a></li>
+            </ul>
+        </nav>
+        <div class="header-right">
+            <div class="language-select">English</div>
+            {% if request.user.is_authenticated %}
+                <a href="{% url 'claims' %}" class="header-login-btn" style="background: rgba(255,255,255,0.1);">My Claims</a>
+                <a href="{% url 'logout' %}" class="header-login-btn">Log out</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="header-login-btn">Log in</a>
+            {% endif %}
+            <button class="menu-toggle" aria-label="Menu">☰</button>
+        </div>
+    </header>
+    <section class="hero-banner">
+        <div class="hero-card">
+            <div class="hero-eyebrow">Claim status tracker</div>
+            <h1>Your Claims History</h1>
+            <p>Review the status of your submitted compensation and refund claims. Below you can find all your claims that have been successfully approved or cancelled.</p>
+        </div>
+    </section>
+
+    <div class="main-container">
+        <div class="content-card">
+            <h2>Approved Claims</h2>
+            <p>Claims listed below have been verified, processed, and approved for payout or reimbursement.</p>
+            
+            <table class="content-table">
+                <thead>
+                    <tr>
+                        <th>Claim ID</th>
+                        <th>Booking / Flight</th>
+                        <th>Route</th>
+                        <th>Date Submitted</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if approved_claims %}
+                        {% for claim in approved_claims %}
+                        <tr>
+                            <td>#{{ claim.id }}</td>
+                            <td>{{ claim.booking_no|default:"N/A" }}</td>
+                            <td>{{ claim.from_airport|default:"" }} → {{ claim.to_airport|default:"" }}</td>
+                            <td>{{ claim.created_at|date:"M d, Y" }}</td>
+                            <td>{{ claim.approved_amount|default:"0.00" }}</td>
+                            <td><span class="badge badge-approved">Approved</span></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="no-claims">No approved claims found at this time.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <h2>Cancelled Claims</h2>
+            <p>Claims listed below have been withdrawn or cancelled.</p>
+            
+            <table class="content-table">
+                <thead>
+                    <tr>
+                        <th>Claim ID</th>
+                        <th>Booking / Flight</th>
+                        <th>Route</th>
+                        <th>Date Submitted</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if cancelled_claims %}
+                        {% for claim in cancelled_claims %}
+                        <tr>
+                            <td>#{{ claim.id }}</td>
+                            <td>{{ claim.booking_no|default:"N/A" }}</td>
+                            <td>{{ claim.from_airport|default:"" }} → {{ claim.to_airport|default:"" }}</td>
+                            <td>{{ claim.created_at|date:"M d, Y" }}</td>
+                            <td>{{ claim.approved_amount|default:"0.00" }}</td>
+                            <td><span class="badge badge-cancelled">Cancelled</span></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="no-claims">No cancelled claims found.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer class="cookie-footer">
+        <div class="cookie-text">
+            This site uses cookies to offer a better browsing experience. Find out more about our <a href="#">Privacy Policy</a> and <a href="#">Cookie Policy</a>
+        </div>
+        <div class="cookie-buttons">
+            <button class="cookie-btn">Accept all cookies</button>
+            <button class="cookie-btn">Accept only essential cookies</button>
+        </div>
+    </footer>
+
+    <script>
+        const menuToggle = document.querySelector('.menu-toggle');
+        const navMenu = document.querySelector('nav');
+
+        if (menuToggle && navMenu) {
+            menuToggle.addEventListener('click', function() {
+                navMenu.classList.toggle('nav-active');
+            });
+        }
+    </script>
+</body>
+</html>

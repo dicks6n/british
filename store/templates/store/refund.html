@@ -1,0 +1,575 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Status & Refund - Compensation Calculator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #01122c;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            justify-content: space-between;
+        }
+
+        header {
+            background-color: transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 40px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-image {
+            height: 35px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        nav {
+            display: flex;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 32px;
+        }
+
+        nav ul li a {
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        nav ul li a:hover {
+            opacity: 1;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .language-select {
+            color: #ffffff;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-login-btn {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .header-login-btn:hover {
+            border-color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #ffffff;
+        }
+
+        .hero-banner {
+            position: relative;
+            background-image: url('https://ba.scene7.com/is/image/ba/london-sky-line-sunset:16-9?wid=1200&hei=450&fit=crop&fmt=webp&qlt=75&resMode=sharp2&op_blur=0');
+            background-size: cover;
+            background-position: center;
+            text-align: center;
+            padding: 150px 20px 110px 20px;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background: linear-gradient(to bottom, rgba(1, 18, 44, 0), rgba(1, 18, 44, 0.95));
+            pointer-events: none;
+        }
+
+        .hero-card {
+            background: rgba(22, 34, 52, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 8px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 790px;
+            padding: 38px 44px;
+            text-align: left;
+            position: relative;
+            z-index: 5;
+            margin-top: 20px;
+        }
+
+        .hero-card .hero-eyebrow {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            opacity: 0.9;
+        }
+
+        .hero-card h1 {
+            color: #ffffff;
+            font-size: 42px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-card p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+
+        .main-container {
+            display: flex;
+            justify-content: center;
+            padding: 0 20px 60px 20px;
+            margin-top: -40px;
+            flex: 1;
+            position: relative;
+            z-index: 6;
+            width: 100%;
+        }
+
+        .calculator-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 790px;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .calculator-card h2 {
+            font-size: 24px;
+            color: #222;
+            margin-bottom: 8px;
+        }
+
+        .calculator-card p.subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .amount-display-box {
+            margin: 20px 0 30px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .amount-value {
+            font-size: 48px;
+            font-weight: 800;
+            color: #1b6ca8;
+            font-style: italic;
+            letter-spacing: -1px;
+        }
+
+        .pending-badge {
+            display: inline-block;
+            background-color: #fef3c7;
+            color: #d97706;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .pending-text {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .info-tag {
+            background-color: #1b6ca8;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 25px;
+            display: inline-block;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 14px 14px 45px;
+            border: 1px solid #dcdcdc;
+            border-radius: 4px;
+            font-size: 16px;
+            color: #333;
+            outline: none;
+            background: #fff;
+        }
+
+        .input-group input:focus {
+            border-color: #1b6ca8;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #1b6ca8;
+            font-size: 16px;
+        }
+
+        .phone-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .phone-prefix {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #dcdcdc;
+            border-radius: 4px;
+            padding: 0 12px;
+            font-size: 14px;
+            color: #333;
+            gap: 6px;
+        }
+
+        .terms-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 20px 0;
+            text-align: left;
+            font-size: 12px;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .terms-container input {
+            margin-top: 2px;
+        }
+
+        .terms-container a {
+            color: #1b6ca8;
+            text-decoration: underline;
+        }
+
+        .submit-btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            background-color: #1b6ca8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        .submit-btn:hover {
+            background-color: #155584;
+        }
+
+        .cookie-footer {
+            background-color: #01122c;
+            color: #ffffff;
+            padding: 25px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cookie-text {
+            max-width: 700px;
+            line-height: 1.4;
+            opacity: 0.8;
+        }
+
+        .cookie-text a {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        .cookie-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .cookie-btn {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .cookie-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #ffffff;
+        }
+
+        @media (max-width: 900px) {
+            header {
+                padding: 15px 20px;
+            }
+            nav ul {
+                gap: 15px;
+            }
+            .hero-card {
+                padding: 28px 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 15px 20px;
+            }
+
+            nav {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background-color: #01122c;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                padding: 20px;
+                z-index: 1000;
+            }
+
+            nav.nav-active {
+                display: block;
+            }
+
+            nav ul {
+                flex-direction: column;
+                gap: 15px;
+                align-items: center;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .hero-banner {
+                padding: 110px 15px 80px 15px;
+                min-height: 480px;
+            }
+
+            .hero-card h1 {
+                font-size: 28px;
+            }
+
+            .main-container {
+                padding: 0 10px 30px 10px;
+                margin-top: -30px;
+            }
+
+            .calculator-card {
+                padding: 24px 18px;
+            }
+
+            .cookie-footer {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+                padding: 20px;
+            }
+
+            .cookie-buttons {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <a href="{% url 'home' %}">
+            <img src="{% static 'store/img/british.png' %}" alt="British Airways Logo" class="logo-image"></a>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'how_it_works' %}">How it works</a></li>
+                <li><a href="{% url 'air_passenger_rights' %}">Your rights</a></li>
+                <li><a href="#">FAQ</a></li>
+                <li><a href="#">Partnership</a></li>
+            </ul>
+        </nav>
+        <div class="header-right">
+            <div class="language-select">English</div>
+            {% if request.user.is_authenticated %}
+                <a href="{% url 'claims' %}" class="header-login-btn" style="background: rgba(255,255,255,0.1);">My Claims</a>
+                <a href="{% url 'logout' %}" class="header-login-btn">Log out</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="header-login-btn">Log in</a>
+            {% endif %}
+            <button class="menu-toggle" aria-label="Menu">☰</button>
+        </div>
+    </header>
+
+    <section class="hero-banner">
+        <div class="hero-card">
+            <div class="hero-eyebrow">Flight rights & compensation</div>
+            <h1>Claim status & refund</h1>
+            <p>Review your submitted claim status and finalize your details for compensation processing.</p>
+        </div>
+    </section>
+
+    <div class="main-container">
+        <div class="calculator-card">
+            <h2>Congratulations!</h2>
+            <p class="subtitle">You may be entitled to</p>
+
+            <div class="amount-display-box">
+                {% if status == 'approved' and approved_amount %}
+                    <div class="amount-value">€{{ approved_amount }}</div>
+                    <div style="color: #10b981; font-size: 13px; font-weight: 600; margin-top: 5px;">✓ Approved by Admin</div>
+                {% else %}
+                    <div class="pending-badge">Pending Admin Approval</div>
+                    <div class="pending-text">Your flight details have been submitted. An administrator is reviewing your case to determine and approve your exact compensation amount.</div>
+                {% endif %}
+            </div>
+
+            <div class="info-tag">
+                Submitting a claim is absolutely free of charge
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="input-group">
+                    <span class="input-icon">👤</span>
+                    <input type="text" name="fullname" value="{{ claim.fullname|default:'' }}" placeholder="Full name, as in the passport" required>
+                </div>
+
+                <div class="input-group">
+                    <span class="input-icon">✉️</span>
+                    <input type="email" name="email" value="{{ claim.email|default:'' }}" placeholder="E-mail" required>
+                </div>
+
+                <div class="input-group">
+                    <div class="phone-row">
+                        <div class="phone-prefix">
+                            <span>🇬🇧</span> +44
+                        </div>
+                        <input type="tel" name="phone" value="{{ claim.phone|default:'' }}" placeholder="(123) 456-78-90" style="padding-left: 14px;" required>
+                    </div>
+                </div>
+
+                <div class="terms-container">
+                    <input type="checkbox" id="terms" required>
+                    <label for="terms">
+                        By clicking «Submit application» you give your consent to the processing of your personal data in accordance with the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="submit-btn">Submit application</button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="cookie-footer">
+        <div class="cookie-text">
+            This site uses cookies to offer a better browsing experience. Find out more about our <a href="#">Privacy Policy</a> and <a href="#">Cookie Policy</a>
+        </div>
+        <div class="cookie-buttons">
+            <button class="cookie-btn">Accept all cookies</button>
+            <button class="cookie-btn">Accept only essential cookies</button>
+        </div>
+    </footer>
+
+    <script>
+        const menuToggle = document.querySelector('.menu-toggle');
+        const navMenu = document.querySelector('nav');
+
+        if (menuToggle && navMenu) {
+            menuToggle.addEventListener('click', function() {
+                navMenu.classList.toggle('nav-active');
+            });
+        }
+    </script>
+</body>
+</html>
