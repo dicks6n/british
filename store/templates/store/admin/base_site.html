@@ -1,0 +1,17 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | British Airways Admin{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}" style="display: flex; align-items: center; gap: 10px;">
+        <img src="{% static 'store/img/british.png' %}" 
+             alt="British Airways" 
+             style="height: 28px; width: auto;">
+        <span style="color: #01122c; font-size: 18px;">British Airways Admin</span>
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

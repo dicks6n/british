@@ -1,0 +1,583 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Staff Console — British Airways{% endblock %}
+
+{% block extra_head %}
+<style>
+    .console-shell {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 140px 32px 60px;
+    }
+
+    /* ── Inline header strip ────────────────────────── */
+    .console-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        background: linear-gradient(135deg, #01122c 0%, #0a3d62 100%);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        margin-bottom: 20px;
+        color: #fff;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .console-header .title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    .console-header .title .dot {
+        width: 10px; height: 10px;
+        background: #16a34a;
+        border-radius: 50%;
+        box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.25);
+        animation: pulseDot 2s ease-in-out infinite;
+    }
+    @keyframes pulseDot {
+        0%, 100% { box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.25); }
+        50% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0.1); }
+    }
+    .console-header .meta {
+        font-size: 13px;
+        color: #94a3b8;
+    }
+    .console-header .meta strong { color: #fff; }
+
+    /* ── Dial & search cards ─────────────────────────── */
+    .card {
+        background: rgba(22, 34, 52, 0.85);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        color: #e2e8f0;
+    }
+    .card h2 {
+        margin: 0 0 16px;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #93c5fd;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .dial-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .dial-row input {
+        flex: 1;
+        min-width: 220px;
+        padding: 12px 16px;
+        background: #0f1626;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 15px;
+        font-family: 'Courier New', monospace;
+        outline: none;
+    }
+    .dial-row input:focus { border-color: #1b6ca8; }
+
+    .btn-call {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        background: #1b6ca8;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .btn-call:hover { background: #155584; }
+
+    .btn-reconnect {
+        padding: 6px 14px;
+        border: none;
+        border-radius: 6px;
+        background: #334155;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .btn-reconnect:hover { background: #475569; }
+
+    /* ── Claim list ──────────────────────────────────── */
+    .list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .claim-row {
+        display: grid;
+        grid-template-columns: 140px 1fr auto auto;
+        gap: 16px;
+        align-items: center;
+        padding: 14px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.04);
+        margin-bottom: 8px;
+        background: rgba(15, 22, 38, 0.5);
+        transition: background 0.15s;
+    }
+    .claim-row:hover { background: rgba(27, 108, 168, 0.08); }
+    .claim-row .id {
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
+        color: #93c5fd;
+        font-size: 13px;
+    }
+    .claim-row .name {
+        font-weight: 500;
+        color: #fff;
+        font-size: 14px;
+    }
+    .claim-row .meta {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        font-size: 12px;
+        color: #94a3b8;
+        flex-wrap: wrap;
+    }
+    .claim-row .badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(27,108,168,0.15);
+        color: #93c5fd;
+    }
+    .claim-row .btn-call { padding: 8px 16px; font-size: 13px; }
+
+    @media (max-width: 900px) {
+        .claim-row {
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+        }
+        .claim-row .meta {
+            grid-column: 1 / -1;
+        }
+    }
+
+    /* ── Call bar (floating) ─────────────────────────── */
+    .callbar {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 340px;
+        background: linear-gradient(180deg, #0a3d62 0%, #01122c 100%);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        z-index: 200;
+        color: #fff;
+        text-align: center;
+    }
+    @media (max-width: 768px) {
+        .callbar {
+            left: 16px;
+            right: 16px;
+            width: auto;
+            bottom: 80px;
+        }
+    }
+    .callbar .avatar {
+        width: 60px; height: 60px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin: 0 auto 10px;
+    }
+    .callbar .who {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+    .callbar .sub {
+        font-size: 12px;
+        color: #93c5fd;
+        margin-bottom: 10px;
+    }
+    .callbar .status {
+        font-size: 13px;
+        color: #cbd5e1;
+        margin-bottom: 4px;
+    }
+    .callbar .timer {
+        font-family: 'Courier New', monospace;
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 14px;
+    }
+    .callbar .controls {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 12px;
+    }
+    .round {
+        width: 52px; height: 52px;
+        border-radius: 50%;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.15s;
+    }
+    .round:hover { transform: scale(1.08); }
+    .round.soft { background: rgba(255,255,255,0.15); color: #fff; }
+    .round.soft.on { background: #fff; color: #0a3d62; }
+    .round.btn-end { background: #dc2626; color: #fff; }
+    .round.btn-answer { background: #16a34a; color: #fff; }
+    .callbar.ringing .avatar { animation: pulseRing 1.4s infinite; }
+    @keyframes pulseRing {
+        0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.5); }
+        100% { box-shadow: 0 0 0 20px rgba(255,255,255,0); }
+    }
+
+    .sharing-pill {
+        display: inline-block;
+        background: rgba(22, 163, 74, 0.2);
+        color: #86efac;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        margin-top: 8px;
+    }
+
+    /* ── Screen view ─────────────────────────────────── */
+    .screen-view {
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    .screen-view .bar {
+        padding: 10px 16px;
+        background: #0f1626;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        color: #e2e8f0;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .screen-view .bar button {
+        background: #1b6ca8;
+        border: none;
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    .screen-view video {
+        display: block;
+        width: 100%;
+        max-height: 60vh;
+        background: #000;
+    }
+
+    /* ── Incoming overlay ───────────────────────────── */
+    .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+    .overlay .callbar {
+        position: static;
+        width: 340px;
+        max-width: 100%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    }
+
+    .hidden { display: none !important; }
+    .muted { color: #64748b; font-size: 13px; font-style: italic; }
+</style>
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block content %}
+<div class="console-shell">
+
+    <!-- Console header strip -->
+    <div class="console-header">
+        <div class="title">
+            <span class="dot"></span>
+            Staff Call Center
+        </div>
+        <div class="meta">
+            Signed in as <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+            &nbsp;·&nbsp; Live · WebRTC
+        </div>
+    </div>
+
+    <!-- Active screen share (customer's screen) -->
+    <div class="screen-view hidden" id="screen-view">
+        <div class="bar">
+            <span>🖥️ Customer is sharing their screen</span>
+            <button id="btn-fullscreen">⛶ Full screen</button>
+        </div>
+        <video id="screen-video" autoplay playsinline muted></video>
+    </div>
+
+    <!-- Dial by claim ID -->
+    <div class="card">
+        <h2>📞 Dial a claim</h2>
+        <form id="dial-form" class="dial-row" autocomplete="off">
+            <input id="dial-claim" type="text"
+                   placeholder="Type a claim ID (e.g. BA-A1B2C3) and press Enter…"
+                   autocomplete="off">
+            <button class="btn-call" type="submit">📞 Call</button>
+        </form>
+        <p class="muted" style="margin-top:10px;">Or pick a claim from the list below.</p>
+    </div>
+
+    <!-- Claims list -->
+    <div class="card">
+        <h2>📋 Claims <span style="color:#64748b;font-size:13px;text-transform:none;letter-spacing:0;">({{ claims|length }})</span></h2>
+        <input id="search" type="search" placeholder="Search claim ID, name or phone…" autocomplete="off"
+               style="width:100%;padding:12px 16px;background:#0f1626;border:1px solid #334155;border-radius:8px;color:#fff;font-size:14px;margin-bottom:14px;outline:none;">
+        <ul class="list" id="claims-list">
+        {% for c in claims %}
+            <li class="claim-row" data-search="{{ c.claim_id|default:'' }} {{ c.fullname|default:''|lower }} {{ c.phone|default:'' }}">
+                <span class="id">{{ c.claim_id|default:"—" }}</span>
+                <span class="name">{{ c.fullname|default:"Guest" }}</span>
+                <span class="meta">
+                    <span>{{ c.phone|default:"—" }}</span>
+                    <span class="badge">{{ c.get_status_display }}</span>
+                    <span>{{ c.created_at|date:"M j, H:i" }}</span>
+                </span>
+                <button class="btn-call js-call"
+                        data-claim="{{ c.claim_id|default:c.pk }}"
+                        data-name="{{ c.fullname|default:'Guest' }}">📞 Call</button>
+            </li>
+        {% empty %}
+            <li class="muted" style="padding:20px;text-align:center;">No claims yet.</li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Recent calls -->
+    <div class="card">
+        <h2>📜 Recent calls</h2>
+        <ul class="list">
+        {% for call in recent_calls %}
+            <li class="claim-row">
+                <span class="id">#{{ call.id }}</span>
+                <span class="name">
+                    {% if call.claim %}{{ call.claim.fullname }} · {{ call.claim.claim_id }}{% else %}—{% endif %}
+                </span>
+                <span class="meta">
+                    {% if call.initiated_by == 'customer' %}↙ Incoming{% else %}↗ Outgoing{% endif %}
+                    · {% if call.agent %}{{ call.agent.get_full_name|default:call.agent.username }}{% else %}—{% endif %}
+                    · {{ call.started_at|date:"M j, H:i" }}
+                    {% if call.duration_seconds is not None %}· {{ call.duration_seconds }}s{% endif %}
+                </span>
+                <span class="badge">{{ call.get_status_display }}</span>
+            </li>
+        {% empty %}
+            <li class="muted" style="padding:20px;text-align:center;">No calls yet.</li>
+        {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- Active / outgoing call bar -->
+<div class="callbar hidden" id="phone">
+    <div class="avatar">👤</div>
+    <div class="who" id="who"></div>
+    <div class="sub" id="who-claim"></div>
+    <div class="status" id="status"></div>
+    <div class="timer" id="timer"></div>
+    <div class="sharing-pill hidden" id="sharing-pill">● You are sharing your screen</div>
+    <div class="controls">
+        <button class="round soft hidden" id="btn-mute" title="Mute">🎙️</button>
+        <button class="round soft hidden" id="btn-share" title="Share your screen">🖥️</button>
+        <button class="round btn-end hidden" id="btn-end" title="End call">✖</button>
+    </div>
+</div>
+
+<!-- Incoming ring overlay -->
+<div class="overlay hidden" id="incoming">
+    <div class="callbar ringing">
+        <div class="avatar">👤</div>
+        <div class="who" id="incoming-name"></div>
+        <div class="status" id="incoming-claim"></div>
+        <div class="controls">
+            <button class="round btn-end" id="btn-decline" title="Decline">✖</button>
+            <button class="round btn-answer" id="btn-answer" title="Answer">📞</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ ice_servers|json_script:"ice-servers" }}
+<script src="{% static 'calls/callcenter.js' %}"></script>
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const show = (id, on) => $(id).classList.toggle('hidden', !on);
+    const callButtons = () => document.querySelectorAll('.js-call');
+    let hideTimer = null;
+
+    function showParty(name, claimId) {
+        $('who').textContent = name;
+        $('who-claim').textContent = 'Claim ' + claimId;
+    }
+
+    const cc = new CallCenter({
+        side: 'agent',
+        iceServers: JSON.parse($('ice-servers').textContent),
+        urls: {
+            start: "{% url 'start_call' %}",
+            incoming: "{% url 'incoming_calls' %}",
+            detail: (id) => `/api/calls/${id}/`,
+            answer: (id) => `/api/calls/${id}/answer/`,
+            end: (id) => `/api/calls/${id}/end/`,
+        },
+        onState(state, info) {
+            clearTimeout(hideTimer);
+            // Accept both engine naming schemes: calling/active and ringing/connected.
+            if (state === 'calling') state = 'ringing';
+            if (state === 'active') state = 'connected';
+            const inCall = !['idle', 'ended', 'missed', 'declined'].includes(state);
+            const talking = ['connected', 'reconnecting'].includes(state);
+
+            if (info.call) showParty(info.call.customer_name, info.call.claim_id);
+
+            show('phone', true);
+            $('phone').classList.toggle('ringing', state === 'ringing');
+            show('btn-end', inCall);
+            show('btn-mute', talking);
+            show('btn-share', talking && cc.canShareScreen());
+            $('btn-mute').classList.remove('on');
+            $('btn-mute').title = 'Mute';
+
+            $('status').textContent = {
+                ringing: 'Ringing…',
+                connecting: 'Connecting…',
+                connected: 'Connected',
+                reconnecting: 'Reconnecting…',
+                ended: info.reason || 'Call ended',
+                missed: 'Call missed',
+                declined: 'Call declined',
+            }[state] || '';
+
+            if (!inCall) {
+                $('timer').textContent = '';
+                hideTimer = setTimeout(() => show('phone', false), 2500);
+            }
+
+            callButtons().forEach((b) => { b.disabled = inCall; });
+        },
+
+        onIncoming(call) {
+            show('incoming', !!call);
+            if (call) {
+                $('incoming-name').textContent = call.customer_name;
+                $('incoming-claim').textContent = 'Claim ' + call.claim_id + ' is calling…';
+                showParty(call.customer_name, call.claim_id);
+            }
+        },
+
+        onTimer(t) { $('timer').textContent = t; },
+
+        onError(msg) { $('status').textContent = msg; },
+
+        onRemoteScreen(stream) {
+            const video = $('screen-video');
+            show('screen-view', !!stream);
+            video.srcObject = stream;
+            if (stream) {
+                video.play().catch(() => {});
+                $('screen-view').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+        },
+
+        onLocalScreen(on) {
+            $('btn-share').classList.toggle('on', on);
+            $('btn-share').title = on ? 'Stop sharing' : 'Share your screen';
+            show('sharing-pill', on);
+        },
+    });
+
+    // Row-based call buttons
+    callButtons().forEach((btn) => btn.addEventListener('click', () => {
+        showParty(btn.dataset.name, btn.dataset.claim);
+        cc.dial({ claim_id: btn.dataset.claim });
+    }));
+
+    // Dial by typing a claim ID
+    $('dial-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const val = ($('dial-claim').value || '').trim().toUpperCase();
+        if (!val) return;
+        showParty('Customer', val);
+        cc.dial({ claim_id: val });
+        $('dial-claim').value = '';
+    });
+
+    // Controls
+    $('btn-end').addEventListener('click', () => cc.hangup());
+    $('btn-mute').addEventListener('click', () => {
+        const muted = cc.toggleMute();
+        $('btn-mute').classList.toggle('on', muted);
+        $('btn-mute').title = muted ? 'Unmute' : 'Mute';
+    });
+    $('btn-share').addEventListener('click', () => {
+        cc.screenTrack ? cc.stopScreenShare() : cc.startScreenShare();
+    });
+    $('btn-fullscreen').addEventListener('click', () => {
+        const v = $('screen-view');
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        else if (v.requestFullscreen) v.requestFullscreen().catch(() => {});
+        else if ($('screen-video').webkitEnterFullscreen) $('screen-video').webkitEnterFullscreen();
+    });
+    $('btn-answer').addEventListener('click', () => cc.answer());
+    $('btn-decline').addEventListener('click', () => cc.decline());
+
+    // Live search
+    $('search').addEventListener('input', (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        document.querySelectorAll('#claims-list li[data-search]').forEach((li) => {
+            li.classList.toggle('hidden', !!q && !li.dataset.search.toLowerCase().includes(q));
+        });
+    });
+
+    cc.startIncomingPolling();
+})();
+</script>
+{% endblock %}

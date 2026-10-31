@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Talk to us — British Airways{% endblock %}
+
+{% block extra_head %}
+<style>
+    .support-shell { max-width: 1100px; margin: 0 auto; padding: 140px 24px 60px; }
+    .card { background: rgba(22,34,52,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; margin-bottom: 20px; color: #e2e8f0; }
+    .card h2 { margin: 0 0 16px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #93c5fd; }
+    .grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    .phone { background: linear-gradient(180deg, #0a3d62 0%, #01122c 100%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 28px 24px; text-align: center; color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+    .phone .avatar { width: 76px; height: 76px; border-radius: 50%; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 14px; }
+    .phone .who { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .phone .status { color: #94a3b8; font-size: 13px; min-height: 20px; margin-bottom: 12px; }
+    .phone .timer { font-family: 'Courier New', monospace; font-size: 22px; font-weight: 700; color: #fff; min-height: 26px; margin-bottom: 12px; }
+    .phone .controls { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+    .round { width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 22px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: transform 0.15s; }
+    .round:hover { transform: scale(1.08); }
+    .round.soft { background: rgba(255,255,255,0.15); color: #fff; }
+    .round.soft.on { background: #fff; color: #0a3d62; }
+    .round.btn-call { background: #16a34a; color: #fff; }
+    .round.btn-end { background: #dc2626; color: #fff; }
+    .phone.ringing .avatar { animation: pulseRing 1.4s infinite; }
+    @keyframes pulseRing { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.5); } 100% { box-shadow: 0 0 0 20px rgba(255,255,255,0); } }
+    .sharing-pill { display: inline-block; background: rgba(22,163,74,0.2); color: #86efac; padding: 6px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 12px; }
+    .screen-view { background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.08); }
+    .screen-view .bar { padding: 10px 14px; background: #0f1626; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #e2e8f0; }
+    .screen-view .bar button { background: #1b6ca8; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .screen-view video { display: block; width: 100%; max-height: 50vh; background: #000; }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .overlay .phone { position: static; width: 320px; max-width: 100%; }
+    .hidden { display: none !important; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: rgba(27,108,168,0.15); color: #93c5fd; }
+    .claim-id { font-family: 'Courier New', monospace; font-weight: 700; color: #93c5fd; }
+</style>
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block content %}
+<div class="support-shell">
+    {% if claim %}
+    <div class="grid">
+        <div>
+            <div class="card">
+                <h2>👤 Your claim</h2>
+                <p><span style="color:#64748b;font-size:12px;">Claim ID</span><br><span class="claim-id">{{ claim.claim_id }}</span></p>
+                <p><span style="color:#64748b;font-size:12px;">Name</span><br>{{ claim.fullname|default:"Guest" }}</p>
+                <p><span style="color:#64748b;font-size:12px;">Email</span><br>{{ claim.email|default:"—" }}</p>
+                <p><span style="color:#64748b;font-size:12px;">Status</span><br><span class="badge">{{ claim.get_status_display }}</span></p>
+                {% if claim.eligible_amount %}<p><span style="color:#64748b;font-size:12px;">Eligible</span><br><strong style="color:#86efac;">€{{ claim.eligible_amount }}</strong></p>{% endif %}
+            </div>
+        </div>
+
+        <div>
+            <div class="screen-view hidden" id="screen-view">
+                <div class="bar"><span>🖥️ Support's screen</span><button id="btn-fullscreen">⛶ Full</button></div>
+                <video id="screen-video" autoplay playsinline muted></video>
+            </div>
+
+            <div class="phone" id="phone">
+                <div class="avatar">🎧</div>
+                <div class="who">Claims Support</div>
+                <div class="status" id="status">Ready to call</div>
+                <div class="timer" id="timer"></div>
+                <div class="sharing-pill hidden" id="sharing-pill">● You are sharing your screen</div>
+                <div class="controls">
+                    <button class="round btn-call" id="btn-call" title="Call support">📞</button>
+                    <button class="round soft hidden" id="btn-mute" title="Mute">🎙️</button>
+                    <button class="round soft hidden" id="btn-share" title="Share screen">🖥️</button>
+                    <button class="round btn-end hidden" id="btn-end" title="End call">✖</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay hidden" id="incoming">
+        <div class="phone ringing">
+            <div class="avatar">🎧</div>
+            <div class="who">Claims Support</div>
+            <div class="status">is calling you…</div>
+            <div class="controls">
+                <button class="round btn-end" id="btn-decline" title="Decline">✖</button>
+                <button class="round btn-call" id="btn-answer" title="Answer">📞</button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card" style="text-align:center;padding:60px;">
+        <h2 style="justify-content:center;">No claim found</h2>
+        <p style="color:#64748b;margin-bottom:20px;">Apply for a claim first to enable calling.</p>
+        <a href="{% url 'home' %}" style="display:inline-block;padding:12px 24px;background:#1b6ca8;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Apply for a claim</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if claim %}
+{{ ice_servers|json_script:"ice-servers" }}
+<script src="{% static 'calls/callcenter.js' %}"></script>
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const show = (id, on) => $(id).classList.toggle('hidden', !on);
+
+    const cc = new CallCenter({
+        side: 'customer',
+        iceServers: JSON.parse($('ice-servers').textContent),
+        urls: {
+            start:    "{% url 'start_call' %}",
+            incoming: "{% url 'incoming_calls' %}",
+            detail:   (id) => `/api/calls/${id}/`,
+            answer:   (id) => `/api/calls/${id}/answer/`,
+            end:      (id) => `/api/calls/${id}/end/`,
+        },
+
+        onState(state, info) {
+            // Accept both engine naming schemes: calling/active and ringing/connected.
+            if (state === 'calling') state = 'ringing';
+            if (state === 'active') state = 'connected';
+            const inCall = !['idle', 'ended', 'missed', 'declined'].includes(state);
+            const talking = ['connected', 'reconnecting'].includes(state);
+            show('btn-call', !inCall);
+            show('btn-end', inCall);
+            show('btn-mute', talking);
+            show('btn-share', talking && cc.canShareScreen());
+            $('btn-mute').classList.remove('on');
+            $('btn-mute').title = 'Mute';
+            $('phone').classList.toggle('ringing', state === 'ringing');
+            $('status').textContent = {
+                ringing: 'Calling…', connecting: 'Connecting…', connected: 'Connected',
+                reconnecting: 'Reconnecting…', ended: info.reason || 'Call ended', idle: 'Ready to call',
+                missed: 'Call missed', declined: 'Call declined',
+            }[state] || '';
+            if (!inCall) $('timer').textContent = '';
+        },
+
+        onIncoming(call) { show('incoming', !!call); },
+        onTimer(t) { $('timer').textContent = t; },
+        onError(msg) { $('status').textContent = msg; },
+
+        onRemoteScreen(stream) {
+            const video = $('screen-video');
+            show('screen-view', !!stream);
+            video.srcObject = stream;
+            if (stream) {
+                video.play().catch(() => {});
+                $('screen-view').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+        },
+
+        onLocalScreen(on) {
+            $('btn-share').classList.toggle('on', on);
+            show('sharing-pill', on);
+        },
+    });
+
+    $('btn-call').addEventListener('click', () => cc.dial({ claim_id: "{{ claim.claim_id }}" }));
+    $('btn-end').addEventListener('click', () => cc.hangup());
+    $('btn-mute').addEventListener('click', () => {
+        const muted = cc.toggleMute();
+        $('btn-mute').classList.toggle('on', muted);
+        $('btn-mute').title = muted ? 'Unmute' : 'Mute';
+    });
+    $('btn-share').addEventListener('click', () => cc.screenTrack ? cc.stopScreenShare() : cc.startScreenShare());
+    $('btn-fullscreen').addEventListener('click', () => {
+        const v = $('screen-view');
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        else if (v.requestFullscreen) v.requestFullscreen().catch(() => {});
+        else if ($('screen-video').webkitEnterFullscreen) $('screen-video').webkitEnterFullscreen();   // iPhone
+    });
+    $('btn-answer').addEventListener('click', () => cc.answer());
+    $('btn-decline').addEventListener('click', () => cc.decline());
+
+    cc.startIncomingPolling();
+})();
+</script>
+{% endif %}
+{% endblock %}

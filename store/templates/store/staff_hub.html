@@ -1,0 +1,507 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Claim Hub — SkyClaim Demo{% endblock %}
+
+{% block extra_head %}
+<style>
+    .hub-shell { max-width: 1400px; margin: 0 auto; padding: 140px 24px 60px; }
+
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .stat {
+        background: rgba(22, 34, 52, 0.85);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+    .stat::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 4px;
+        background: var(--accent, #1b6ca8);
+    }
+    .stat .label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 8px; }
+    .stat .value { font-size: 32px; font-weight: 700; color: #fff; }
+    .stat .sub { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+    .filters {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+        background: rgba(22, 34, 52, 0.6);
+        padding: 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .filters input, .filters select {
+        padding: 10px 14px;
+        background: #0f1626;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        color: #e2e8f0;
+        font-size: 14px;
+        outline: none;
+    }
+    .filters input:focus, .filters select:focus { border-color: #1b6ca8; }
+    .filters input[type="text"] { flex: 1; min-width: 260px; }
+    .filters select { min-width: 160px; }
+
+    .claims-table {
+        width: 100%;
+        background: rgba(22, 34, 52, 0.85);
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .claims-table table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .claims-table th {
+        text-align: left;
+        padding: 14px 16px;
+        background: #0f1626;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #94a3b8;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .claims-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        color: #e2e8f0;
+        vertical-align: middle;
+    }
+    .claims-table tr:hover { background: rgba(27,108,168,0.06); cursor: pointer; }
+    .claims-table tr:last-child td { border-bottom: none; }
+
+    .claim-id-cell { font-family: 'Courier New', monospace; font-weight: 700; color: #93c5fd; font-size: 13px; }
+    .route-cell { font-family: 'Courier New', monospace; font-size: 13px; color: #cbd5e1; }
+    .amount-cell { font-weight: 700; color: #86efac; }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .badge.pending   { background: rgba(245,158,11,0.15); color: #fcd34d; }
+    .badge.eligible  { background: rgba(96,165,250,0.15); color: #93c5fd; }
+    .badge.approved  { background: rgba(22,163,74,0.15);  color: #86efac; }
+    .badge.rejected  { background: rgba(220,38,38,0.15);  color: #fca5a5; }
+    .badge.cancelled { background: rgba(100,116,139,0.2); color: #cbd5e1; }
+    .badge.type-badge { background: rgba(27,108,168,0.15); color: #93c5fd; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+
+    .empty { padding: 60px 20px; text-align: center; color: #64748b; font-style: italic; }
+
+    /* Modal */
+    .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.75);
+        backdrop-filter: blur(6px);
+        z-index: 1000;
+        padding: 24px;
+        overflow-y: auto;
+    }
+    .modal-backdrop.on { display: block; }
+    .modal {
+        max-width: 900px;
+        margin: 60px auto;
+        background: #0f1626;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        animation: modalIn 0.25s ease-out;
+    }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .modal-header { padding: 20px 24px; background: linear-gradient(135deg, #0a3d62 0%, #1b6ca8 100%); display: flex; justify-content: space-between; align-items: center; color: #fff; }
+    .modal-header h2 { margin: 0; font-size: 20px; font-weight: 500; }
+    .modal-header .claim-id { font-family: 'Courier New', monospace; font-size: 14px; opacity: 0.85; margin-top: 4px; }
+    .modal-close { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; transition: background 0.15s; }
+    .modal-close:hover { background: rgba(255,255,255,0.3); }
+
+    .modal-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
+    .detail-section { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .detail-section:last-child { border-bottom: none; margin-bottom: 0; }
+    .detail-section h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin: 0 0 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .detail-item { padding: 10px 14px; background: rgba(22,34,52,0.8); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); }
+    .detail-item .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 4px; }
+    .detail-item .v { font-size: 14px; color: #e2e8f0; word-wrap: break-word; }
+    .detail-item .v.mono { font-family: 'Courier New', monospace; font-size: 13px; }
+
+    .notes-box { background: rgba(27,108,168,0.08); border-left: 3px solid #1b6ca8; padding: 14px 18px; border-radius: 6px; font-size: 13px; color: #cbd5e1; white-space: pre-line; line-height: 1.6; }
+
+    .evidence-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .evidence-item { padding: 10px 14px; background: rgba(22,34,52,0.8); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .evidence-item a { color: #93c5fd; text-decoration: none; }
+    .evidence-item a:hover { text-decoration: underline; }
+
+    .modal-footer { padding: 16px 24px; background: #0a0e18; border-top: 1px solid rgba(255,255,255,0.06); display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
+    .modal-footer input[type="number"] { padding: 10px 14px; background: #0f1626; border: 1px solid #334155; border-radius: 8px; color: #fff; font-size: 16px; font-weight: 700; width: 140px; outline: none; }
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-approve { background: #16a34a; color: #fff; }
+    .btn-reject  { background: #dc2626; color: #fff; }
+    .btn-ghost   { background: #334155; color: #e2e8f0; }
+
+    @media (max-width: 900px) {
+        .hub-shell { padding: 90px 16px 40px; }
+        .claims-table { overflow-x: auto; display: block; }
+        .claims-table table { min-width: 700px; }
+        .modal-body { padding: 16px; }
+        .modal-footer { padding: 14px 16px; }
+        .modal-footer input[type="number"] { width: 110px; }
+    }
+</style>
+{% endblock %}
+
+{% block hero %}{% endblock %}
+
+{% block content %}
+<div class="hub-shell">
+
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat" style="--accent: #1b6ca8;">
+            <div class="label">Total Claims</div>
+            <div class="value">{{ total_claims }}</div>
+            <div class="sub">All submissions</div>
+        </div>
+        <div class="stat" style="--accent: #f59e0b;">
+            <div class="label">Pending</div>
+            <div class="value">{{ pending_claims }}</div>
+            <div class="sub">Awaiting review</div>
+        </div>
+        <div class="stat" style="--accent: #16a34a;">
+            <div class="label">Approved</div>
+            <div class="value">{{ approved_claims }}</div>
+            <div class="sub">Ready for payout</div>
+        </div>
+        <div class="stat" style="--accent: #86efac;">
+            <div class="label">Total Approved €</div>
+            <div class="value">€{{ total_amount|floatformat:0 }}</div>
+            <div class="sub">Eligible compensation</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <input type="text" id="filter-search" placeholder="Search by claim ID, name, email, booking no, airports…">
+        <select id="filter-type">
+            <option value="">All types</option>
+            <option value="Flight Delayed">Flight Delayed</option>
+            <option value="Flight Cancelled">Flight Cancelled</option>
+            <option value="Missed Connection">Missed Connection</option>
+            <option value="Denied Boarding">Denied Boarding</option>
+            <option value="Baggage Claim">Baggage Claim</option>
+        </select>
+        <select id="filter-status">
+            <option value="">All statuses</option>
+            <option value="Pending review">Pending</option>
+            <option value="Eligible — awaiting approval">Eligible</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Cancelled">Cancelled</option>
+        </select>
+    </div>
+
+    <!-- Table -->
+    <div class="claims-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Claim ID</th>
+                    <th>Type</th>
+                    <th>Customer</th>
+                    <th>Route</th>
+                    <th>Flight Date</th>
+                    <th>Eligible</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody id="claims-body">
+            {% for c in claims %}
+                <tr data-claim-pk="{{ c.pk }}"
+                    data-search="{{ c.claim_id|default:'' }} {{ c.fullname|default:''|lower }} {{ c.email|default:''|lower }} {{ c.booking_no|default:'' }} {{ c.from_iata|default:'' }} {{ c.to_iata|default:'' }}"
+                    data-type="{{ c.get_claim_type_display }}"
+                    data-status="{{ c.get_status_display }}">
+                    <td class="claim-id-cell">{{ c.claim_id|default:"—" }}</td>
+                    <td><span class="badge type-badge">{{ c.get_claim_type_display }}</span></td>
+                    <td>{{ c.fullname|default:"Guest" }}</td>
+                    <td class="route-cell">{{ c.from_iata|default:"?" }} → {{ c.to_iata|default:"?" }}</td>
+                    <td>{{ c.flight_date|date:"M j, Y"|default:"—" }}</td>
+                    <td class="amount-cell">{% if c.eligible_amount %}€{{ c.eligible_amount }}{% else %}—{% endif %}</td>
+                    <td><span class="badge {{ c.status }}">{{ c.get_status_display }}</span></td>
+                    <td style="color: #64748b; font-size: 12px;">{{ c.created_at|date:"M j, H:i" }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="8" class="empty">No claims yet. Customers who submit the home form will appear here.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <div>
+                <h2 id="m-title">Claim</h2>
+                <div class="claim-id" id="m-claimid">—</div>
+            </div>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body" id="m-body">Loading…</div>
+        <div class="modal-footer">
+            <input type="number" id="m-amount" placeholder="Amount €" step="0.01" min="0">
+            <button class="btn btn-reject" onclick="setClaimStatus('rejected')">Reject</button>
+            <button class="btn btn-approve" onclick="setClaimStatus('approved')">Approve</button>
+            <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const CSRF = (document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/) || [])[1] || '';
+    const backdrop = document.getElementById('modal-backdrop');
+    const mBody = document.getElementById('m-body');
+    const mTitle = document.getElementById('m-title');
+    const mClaimId = document.getElementById('m-claimid');
+    const mAmount = document.getElementById('m-amount');
+    let currentPk = null;
+
+    document.querySelectorAll('tr[data-claim-pk]').forEach(tr => {
+        tr.addEventListener('click', () => openClaim(tr.dataset.claimPk));
+    });
+
+    async function openClaim(pk) {
+        currentPk = pk;
+        backdrop.classList.add('on');
+        mBody.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;">Loading…</div>';
+
+        try {
+            const res = await fetch(`/staff/hub/claim/${pk}/json/`);
+            const data = await res.json();
+            if (!data.ok) throw new Error('Failed to load');
+
+            const c = data.claim;
+            mTitle.textContent = `${c.claim_type} — ${c.fullname}`;
+            mClaimId.textContent = `${c.claim_id} · ${c.status}`;
+            mAmount.value = c.eligible_amount || '';
+
+            let html = `
+                <div class="detail-section">
+                    <h3>👤 Passenger</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><div class="k">Full Name</div><div class="v">${esc(c.fullname)}</div></div>
+                        <div class="detail-item"><div class="k">Email</div><div class="v">${esc(c.email)}</div></div>
+                        <div class="detail-item"><div class="k">Phone</div><div class="v">${esc(c.phone)}</div></div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>✈️ Airline & Booking</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><div class="k">Airline</div><div class="v">${esc(c.airline)}</div></div>
+                        <div class="detail-item"><div class="k">Airline Country</div><div class="v">${esc(c.airline_country)}</div></div>
+                        <div class="detail-item"><div class="k">Booking No</div><div class="v mono">${esc(c.booking_no)}</div></div>
+                        <div class="detail-item"><div class="k">Flight Date</div><div class="v">${esc(c.flight_date)}</div></div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>🛫 Departure</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><div class="k">Airport</div><div class="v mono">${esc(c.from_iata)}</div></div>
+                        <div class="detail-item"><div class="k">Name</div><div class="v">${esc(c.from_name)}</div></div>
+                        <div class="detail-item"><div class="k">City</div><div class="v">${esc(c.from_city)}</div></div>
+                        <div class="detail-item"><div class="k">Country</div><div class="v">${esc(c.from_country)}</div></div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>🛬 Arrival</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><div class="k">Airport</div><div class="v mono">${esc(c.to_iata)}</div></div>
+                        <div class="detail-item"><div class="k">Name</div><div class="v">${esc(c.to_name)}</div></div>
+                        <div class="detail-item"><div class="k">City</div><div class="v">${esc(c.to_city)}</div></div>
+                        <div class="detail-item"><div class="k">Country</div><div class="v">${esc(c.to_country)}</div></div>
+                        <div class="detail-item"><div class="k">Distance</div><div class="v">${c.route_distance ? c.route_distance.toLocaleString() + ' km' : '—'}</div></div>
+                    </div>
+                </div>
+            `;
+
+            if (c.claim_type === 'Flight Delayed') {
+                html += `
+                    <div class="detail-section">
+                        <h3>⏱️ Delay Details</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item"><div class="k">Delay Duration</div><div class="v">${esc(c.delay_duration)}</div></div>
+                        </div>
+                    </div>`;
+            } else if (c.claim_type === 'Flight Cancelled') {
+                html += `
+                    <div class="detail-section">
+                        <h3>❌ Cancellation Details</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item"><div class="k">Notice Period</div><div class="v">${esc(c.cancellation_notice)}</div></div>
+                            <div class="detail-item"><div class="k">Alternative Offered</div><div class="v">${esc(c.alternative_offered)}</div></div>
+                        </div>
+                    </div>`;
+            } else if (c.claim_type === 'Missed Connection') {
+                html += `
+                    <div class="detail-section">
+                        <h3>🔁 Connection Details</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item"><div class="k">From</div><div class="v">${esc(c.conn_from)}</div></div>
+                            <div class="detail-item"><div class="k">Middle</div><div class="v">${esc(c.conn_middle)}</div></div>
+                            <div class="detail-item"><div class="k">To</div><div class="v">${esc(c.conn_to)}</div></div>
+                            <div class="detail-item"><div class="k">Connection Time</div><div class="v">${esc(c.connection_time)}</div></div>
+                        </div>
+                    </div>`;
+            } else if (c.claim_type === 'Denied Boarding') {
+                html += `
+                    <div class="detail-section">
+                        <h3>🚫 Denied Boarding Details</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item"><div class="k">Alternative Offered</div><div class="v">${esc(c.denied_alternative)}</div></div>
+                        </div>
+                    </div>`;
+            } else if (c.claim_type === 'Baggage Claim') {
+                html += `
+                    <div class="detail-section">
+                        <h3>🧳 Baggage Details</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item"><div class="k">Airport</div><div class="v">${esc(c.baggage_airport)}</div></div>
+                            <div class="detail-item"><div class="k">PIR Number</div><div class="v mono">${esc(c.pir_number)}</div></div>
+                            <div class="detail-item"><div class="k">Issue Type</div><div class="v">${esc(c.baggage_issue_type)}</div></div>
+                        </div>
+                    </div>`;
+            }
+
+            html += `
+                <div class="detail-section">
+                    <h3>⚖️ Eligibility Engine</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><div class="k">Jurisdiction</div><div class="v">${esc(c.jurisdiction)}</div></div>
+                        <div class="detail-item"><div class="k">Eligible Amount</div><div class="v" style="color:#86efac;font-weight:700;">${c.eligible_amount ? '€' + c.eligible_amount : '—'}</div></div>
+                    </div>
+                    ${c.eligibility_notes ? `<div class="notes-box" style="margin-top:12px;">${esc(c.eligibility_notes)}</div>` : ''}
+                </div>
+            `;
+
+            if (c.evidence.length) {
+                html += `
+                    <div class="detail-section">
+                        <h3>📎 Evidence (${c.evidence.length})</h3>
+                        <div class="evidence-list">
+                            ${c.evidence.map(e => `
+                                <div class="evidence-item">
+                                    <span>${esc(e.kind)}</span>
+                                    <a href="${e.url}" target="_blank">View →</a>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>`;
+            }
+
+            html += `
+                <div class="detail-section">
+                    <h3>📅 Timeline</h3>
+                    <div class="detail-item"><div class="k">Submitted</div><div class="v">${esc(c.created_at)}</div></div>
+                </div>
+            `;
+
+            mBody.innerHTML = html;
+        } catch (err) {
+            mBody.innerHTML = `<div style="color:#fca5a5;padding:20px;">Could not load claim: ${err.message}</div>`;
+        }
+    }
+
+    async function setClaimStatus(status) {
+        if (!currentPk) return;
+        const amount = mAmount.value;
+        const body = new FormData();
+        body.append('status', status);
+        if (amount) body.append('amount', amount);
+
+        try {
+            const res = await fetch(`/staff/claim/${currentPk}/approve/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF },
+                body,
+            });
+            const data = await res.json();
+            if (data.ok) {
+                closeModal();
+                location.reload();
+            } else {
+                alert(data.error || 'Failed to update claim');
+            }
+        } catch (err) {
+            alert('Failed: ' + err.message);
+        }
+    }
+
+    function closeModal() {
+        backdrop.classList.remove('on');
+        currentPk = null;
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && backdrop.classList.contains('on')) closeModal();
+    });
+
+    backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) closeModal();
+    });
+
+    function applyFilters() {
+        const q = document.getElementById('filter-search').value.toLowerCase().trim();
+        const type = document.getElementById('filter-type').value;
+        const status = document.getElementById('filter-status').value;
+
+        document.querySelectorAll('#claims-body tr[data-claim-pk]').forEach(tr => {
+            let show = true;
+            if (q && !tr.dataset.search.toLowerCase().includes(q)) show = false;
+            if (type && tr.dataset.type !== type) show = false;
+            if (status && tr.dataset.status !== status) show = false;
+            tr.style.display = show ? '' : 'none';
+        });
+    }
+
+    ['filter-search', 'filter-type', 'filter-status'].forEach(id => {
+        document.getElementById(id).addEventListener('input', applyFilters);
+        document.getElementById(id).addEventListener('change', applyFilters);
+    });
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+            {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+        ));
+    }
+</script>
+{% endblock %}

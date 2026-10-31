@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Staff Inbox — SkyClaim Demo{% endblock %}
+
+{% block extra_head %}
+<style>
+    .inbox-shell { display: flex; justify-content: center; padding: 110px 20px 40px; flex: 1; }
+    .inbox-box { background: #fff; width: 100%; max-width: 1100px; border-radius: 12px;
+                 box-shadow: 0 10px 30px rgba(0,0,0,.15); overflow: hidden; display: flex; flex-direction: column;
+                 height: calc(100vh - 170px); min-height: 460px; }
+
+    .inbox-head { padding: 18px 24px; background: #01122c; color: #fff;
+                  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-shrink: 0; }
+    .inbox-head h1 { font-size: 20px; font-weight: 500; margin: 0; }
+    .inbox-head .count { font-size: 13px; opacity: .75; }
+
+    .inbox-search { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; background: #f8fafc; flex-shrink: 0; }
+    .inbox-search input { width: 100%; padding: 11px 16px 11px 40px; border: 1px solid #e2e8f0; border-radius: 22px;
+                          font-size: 15px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394a3b8' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4-4'/%3E%3C/svg%3E") no-repeat 14px center; outline: none; }
+    .inbox-search input:focus { border-color: #1b6ca8; box-shadow: 0 0 0 3px rgba(27,108,168,.12); }
+
+    .inbox-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+    .conv { display: flex; gap: 14px; padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
+            text-decoration: none; color: inherit; transition: background .15s; align-items: center; }
+    .conv:hover { background: #f9fafb; }
+    .conv.unread { background: #f0f7fd; }
+    .conv.unread:hover { background: #e8f2fb; }
+
+    .conv .av { width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+                display: flex; align-items: center; justify-content: center;
+                color: #fff; font-weight: 700; font-size: 17px; }
+
+    .conv .info { flex: 1; min-width: 0; }
+    .conv .info .name { font-size: 15px; font-weight: 500; color: #0f172a; white-space: nowrap;
+                        overflow: hidden; text-overflow: ellipsis; }
+    .conv.unread .info .name { font-weight: 700; }
+    .conv .info .preview { color: #64748b; font-size: 13.5px; margin-top: 3px;
+                           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
+    .conv.unread .info .preview { color: #334155; font-weight: 500; }
+    .conv .info .preview .pic { color: #94a3b8; }
+
+    .conv .right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+    .conv .right .when { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+    .conv.unread .right .when { color: #128c7e; font-weight: 600; }
+    .conv .right .badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+                          background: #25d366; color: #fff; font-size: 12px; font-weight: 700;
+                          display: inline-flex; align-items: center; justify-content: center; }
+
+    .inbox-empty { padding: 60px 20px; text-align: center; color: #64748b; }
+    .no-results { padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 14px; display: none; }
+
+    @media (max-width: 768px) {
+        .inbox-shell { padding: 86px 8px 20px; }
+        .inbox-box { height: calc(100dvh - 130px); border-radius: 10px; }
+        .inbox-head { padding: 14px 16px; }
+        .inbox-head h1 { font-size: 18px; }
+        .conv { padding: 12px 14px; gap: 12px; }
+        .conv .av { width: 44px; height: 44px; font-size: 16px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="inbox-shell">
+    <div class="inbox-box">
+        <div class="inbox-head">
+            <h1>Chat Inbox</h1>
+            <span class="count">{{ conversations|length }} conversation{{ conversations|length|pluralize }}</span>
+        </div>
+
+        <div class="inbox-search">
+            <input type="search" id="inbox-search" placeholder="Search conversations…" autocomplete="off">
+        </div>
+
+        <div class="inbox-list" id="inbox-list">
+            {% for c in conversations %}
+            <a class="conv {% if c.staff_unread %}unread{% endif %}"
+               href="{% url 'chat_staff_thread' c.pk %}"
+               data-search="{{ c.display_name|lower }} {{ c.last_preview|lower }}"
+               data-ts="{{ c.last_message_at|date:'c' }}">
+                <div class="av" data-name="{{ c.display_name }}">{{ c.display_name|slice:":1"|upper }}</div>
+                <div class="info">
+                    <div class="name">{{ c.display_name }}</div>
+                    <div class="preview">{{ c.last_preview }}</div>
+                </div>
+                <div class="right">
+                    <span class="when" data-ts="{{ c.last_message_at|date:'c' }}">{{ c.last_message_at|date:"M j, H:i" }}</span>
+                    {% if c.staff_unread %}<span class="badge">{{ c.staff_unread }}</span>{% endif %}
+                </div>
+            </a>
+            {% empty %}
+            <div class="inbox-empty">No conversations yet. Customers who message you will appear here.</div>
+            {% endfor %}
+            <div class="no-results" id="no-results">No conversations match your search.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    // Colour each avatar from the name, so conversations are easy to tell apart (WhatsApp-style)
+    const palette = ['#1b6ca8','#0f9d58','#db4437','#9333ea','#e8710a','#0891b2','#be185d','#4f46e5'];
+    function hash(str) { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return Math.abs(h); }
+    document.querySelectorAll('.av[data-name]').forEach(av => {
+        av.style.background = palette[hash(av.dataset.name || '?') % palette.length];
+    });
+
+    // Relative timestamps like "now", "5m", "2h", "Yesterday", or a date
+    function relative(iso) {
+        const then = new Date(iso); if (isNaN(then)) return null;
+        const now = new Date(), diff = (now - then) / 1000;
+        if (diff < 45) return 'now';
+        if (diff < 3600) return Math.round(diff / 60) + 'm';
+        if (diff < 86400 && now.getDate() === then.getDate()) return then.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        const y = new Date(now); y.setDate(now.getDate() - 1);
+        if (then.getDate() === y.getDate() && then.getMonth() === y.getMonth() && then.getFullYear() === y.getFullYear()) return 'Yesterday';
+        if (diff < 604800) return then.toLocaleDateString([], {weekday: 'short'});
+        return then.toLocaleDateString([], {month: 'short', day: 'numeric'});
+    }
+    function refreshTimes() {
+        document.querySelectorAll('.when[data-ts]').forEach(el => {
+            const r = relative(el.dataset.ts); if (r) el.textContent = r;
+        });
+    }
+    refreshTimes();
+    setInterval(refreshTimes, 30000);
+
+    // Instant client-side search
+    const search = document.getElementById('inbox-search');
+    const noResults = document.getElementById('no-results');
+    search.addEventListener('input', () => {
+        const q = search.value.trim().toLowerCase();
+        let shown = 0;
+        document.querySelectorAll('.conv[data-search]').forEach(row => {
+            const match = !q || row.dataset.search.includes(q);
+            row.style.display = match ? '' : 'none';
+            if (match) shown++;
+        });
+        noResults.style.display = (q && shown === 0) ? 'block' : 'none';
+    });
+})();
+</script>
+{% endblock %}

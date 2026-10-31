@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>{% block title %}British Airways Support{% endblock %}</title>
     <style>
         * {
@@ -14,7 +14,8 @@
         }
 
         html {
-            overflow-y: scroll; /* Forces scrollbar slot to remain visible across all pages, preventing nav shifts */
+            overflow-y: scroll;
+            height: 100%;
         }
 
         body {
@@ -24,8 +25,12 @@
             flex-direction: column;
             min-height: 100vh;
             justify-content: space-between;
+            padding-bottom: 0;
         }
 
+        /* =========================================
+           HEADER (Desktop = normal, Mobile = fixed top)
+           ========================================= */
         header {
             background-color: transparent;
             display: flex;
@@ -36,31 +41,16 @@
             top: 0;
             left: 0;
             right: 0;
-            z-index: 10;
+            z-index: 100;
         }
 
-        .logo-container {
-            display: flex;
-            align-items: center;
-        }
+        .logo-container { display: flex; align-items: center; }
+        .logo-image { height: 35px; width: auto; object-fit: contain; }
 
-        .logo-image {
-            height: 35px;
-            width: auto;
-            object-fit: contain;
-        }
-
-        nav {
-            display: flex;
-        }
-
-        nav ul {
-            display: flex;
-            list-style: none;
-            gap: 32px;
-        }
-
-        nav ul li a {
+        /* Desktop top navigation */
+        .desktop-nav { display: flex; }
+        .desktop-nav ul { display: flex; list-style: none; gap: 32px; align-items: center; }
+        .desktop-nav ul li a {
             text-decoration: none;
             color: #ffffff;
             font-size: 15px;
@@ -68,25 +58,28 @@
             opacity: 0.9;
             transition: opacity 0.2s;
         }
+        .desktop-nav ul li a:hover { opacity: 1; }
 
-        nav ul li a:hover {
-            opacity: 1;
-        }
-
-        .header-right {
-            display: flex;
+        /* Staff-only highlight */
+        .desktop-nav ul li a.staff-link {
+            color: #93c5fd;
+            font-weight: 500;
+            display: inline-flex;
             align-items: center;
-            gap: 24px;
+            gap: 4px;
+        }
+        .desktop-nav ul li a.staff-link::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #16a34a;
+            box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.3);
         }
 
-        .language-select {
-            color: #ffffff;
-            font-size: 15px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .header-right { display: flex; align-items: center; gap: 24px; }
+        .language-select { color: #ffffff; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
         .header-login-btn {
             background: transparent;
@@ -99,21 +92,120 @@
             cursor: pointer;
             text-decoration: none;
             transition: all 0.2s;
+            white-space: nowrap;
         }
-
         .header-login-btn:hover {
             border-color: #ffffff;
             background: rgba(255, 255, 255, 0.1);
         }
 
-        .menu-toggle {
+        /* =========================================
+           MOBILE BOTTOM NAVIGATION BAR
+           ========================================= */
+        .mobile-nav {
             display: none;
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #ffffff;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #01122c;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 999;
+            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
         }
+        .mobile-nav ul {
+            display: flex;
+            list-style: none;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 4px;
+        }
+        .mobile-nav ul li a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 10px;
+            font-weight: 500;
+            padding: 6px 8px;
+            border-radius: 8px;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .mobile-nav ul li a .icon { font-size: 20px; line-height: 1; }
+        .mobile-nav ul li a.active { color: #1b6ca8; }
+        .mobile-nav ul li a:hover { color: #ffffff; background: rgba(255,255,255,0.05); }
+        .mobile-nav ul li a.active .icon {
+            background: #1b6ca8;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 12px;
+        }
+        .mobile-nav ul li a.staff-tab {
+            color: #93c5fd;
+        }
+        .mobile-nav ul li a.staff-tab::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #16a34a;
+        }
+        .mobile-nav ul li a.staff-tab { position: relative; }
+
+        /* =========================================
+           FOOTERS
+           ========================================= */
+        .site-footer {
+            background-color: #0a1a2f;
+            color: #ffffff;
+            padding: 40px 40px 20px 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .footer-brand { display: flex; align-items: center; gap: 14px; }
+        .footer-logo { height: 40px; width: auto; object-fit: contain; }
+        .footer-brand-text { font-size: 18px; font-weight: 300; letter-spacing: 0.5px; opacity: 0.9; }
+        .footer-links { display: flex; gap: 40px; flex-wrap: wrap; }
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .footer-links a:hover { color: #ffffff; }
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        .footer-social { display: flex; gap: 16px; }
+        .footer-social a {
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-size: 18px;
+            transition: color 0.2s;
+        }
+        .footer-social a:hover { color: #ffffff; }
 
         .cookie-footer {
             background-color: #01122c;
@@ -125,23 +217,9 @@
             font-size: 13px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
-
-        .cookie-text {
-            max-width: 700px;
-            line-height: 1.4;
-            opacity: 0.8;
-        }
-
-        .cookie-text a {
-            color: #ffffff;
-            text-decoration: underline;
-        }
-
-        .cookie-buttons {
-            display: flex;
-            gap: 12px;
-        }
-
+        .cookie-text { max-width: 700px; line-height: 1.4; opacity: 0.8; }
+        .cookie-text a { color: #ffffff; text-decoration: underline; }
+        .cookie-buttons { display: flex; gap: 12px; }
         .cookie-btn {
             background: transparent;
             color: #ffffff;
@@ -153,56 +231,89 @@
             transition: all 0.2s;
             white-space: nowrap;
         }
-
         .cookie-btn:hover {
             background: rgba(255, 255, 255, 0.1);
             border-color: #ffffff;
         }
 
-        @media (max-width: 900px) {
+        /* =========================================
+           RESPONSIVE
+           ========================================= */
+        @media (max-width: 1024px) {
             header { padding: 15px 20px; }
-            nav ul { gap: 15px; }
-            nav ul li a { font-size: 14px; }
+            .desktop-nav ul { gap: 15px; }
+            .desktop-nav ul li a { font-size: 14px; }
+        }
+
+        @media (max-width: 900px) {
+            .desktop-nav ul { gap: 12px; }
+            .desktop-nav ul li a { font-size: 13px; }
         }
 
         @media (max-width: 768px) {
-            header { padding: 15px 20px; }
-            nav {
-                display: none;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                width: 100%;
-                background-color: #01122c;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-                padding: 20px;
-                z-index: 1000;
+            .desktop-nav { display: none; }
+            .mobile-nav { display: block; }
+            body { padding-bottom: 74px; }
+
+            header {
+                padding: 12px 16px;
+                position: fixed;
+                background: #01122c;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             }
-            nav.nav-active { display: block; }
-            nav ul { flex-direction: column; gap: 15px; align-items: center; }
-            .menu-toggle { display: block; }
-            .cookie-footer { flex-direction: column; gap: 15px; text-align: center; padding: 20px; }
+            .logo-image { height: 28px; }
+            .header-right { gap: 10px; }
+            .language-select { display: none; }
+            .header-login-btn { font-size: 12px; padding: 6px 12px; }
+
+            main, .main-content { padding-top: 60px; }
+            .hero-banner { margin-top: 0; }
+
+            .site-footer { padding: 24px 16px 16px 16px; }
+            .footer-top { flex-direction: column; align-items: center; text-align: center; gap: 20px; }
+            .footer-links { justify-content: center; gap: 14px; }
+            .footer-bottom { flex-direction: column; text-align: center; }
+            .footer-brand-text { font-size: 16px; }
+            .footer-logo { height: 32px; }
+
+            .cookie-footer { flex-direction: column; gap: 15px; text-align: center; padding: 20px 16px; }
             .cookie-buttons { width: 100%; justify-content: center; flex-wrap: wrap; }
+            .cookie-btn { font-size: 12px; padding: 6px 12px; }
+        }
+
+        @media (max-width: 400px) {
+            .mobile-nav ul li a { font-size: 9px; padding: 4px 4px; }
+            .mobile-nav ul li a .icon { font-size: 18px; }
         }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
 
+    <!-- ============ HEADER ============ -->
     <header>
         <div class="logo-container">
             <a href="{% url 'home' %}">
                 <img src="{% static 'store/img/british.png' %}" alt="British Airways Logo" class="logo-image">
             </a>
         </div>
-        <nav>
+
+        <!-- DESKTOP TOP NAV -->
+        <nav class="desktop-nav">
             <ul>
                 <li><a href="{% url 'how_it_works' %}">How it works</a></li>
                 <li><a href="{% url 'air_passenger_rights' %}">Your rights</a></li>
-                <li><a href="#">FAQ</a></li>
+                <li><a href="{% url 'support' %}">Talk to us</a></li>
+                <li><a href="{% url 'chat_customer' %}">Messages</a></li>
+                {% if request.user.is_staff %}
+                    <li><a href="{% url 'staff_hub' %}" class="staff-link">Claim Hub</a></li>
+                    <li><a href="{% url 'staff_console' %}" class="staff-link">Console</a></li>
+                    <li><a href="{% url 'chat_inbox' %}" class="staff-link">Inbox</a></li>
+                {% endif %}
             </ul>
         </nav>
+
         <div class="header-right">
             <div class="language-select">English</div>
             {% if request.user.is_authenticated %}
@@ -211,7 +322,6 @@
             {% else %}
                 <a href="{% url 'login' %}" class="header-login-btn">Log in</a>
             {% endif %}
-            <button class="menu-toggle" aria-label="Menu">☰</button>
         </div>
     </header>
 
@@ -219,25 +329,53 @@
 
     {% block content %}{% endblock %}
 
-    <footer class="cookie-footer">
-        <div class="cookie-text">
-            This site uses cookies to offer a better browsing experience. Find out more about our <a href="#">Privacy Policy</a> and <a href="#">Cookie Policy</a>
+    <!-- ============ MOBILE BOTTOM NAVIGATION ============ -->
+    <nav class="mobile-nav">
+        <ul>
+            <li><a href="{% url 'home' %}"><span class="icon">🏠</span>Home</a></li>
+            <li><a href="{% url 'air_passenger_rights' %}"><span class="icon">⚖️</span>Rights</a></li>
+            <li><a href="{% url 'support' %}"><span class="icon">📞</span>Talk</a></li>
+            <li><a href="{% url 'chat_customer' %}"><span class="icon">💬</span>Messages</a></li>
+            {% if request.user.is_staff %}
+                <li><a href="{% url 'staff_hub' %}" class="staff-tab"><span class="icon">📋</span>Hub</a></li>
+                <li><a href="{% url 'chat_inbox' %}" class="staff-tab"><span class="icon">📥</span>Inbox</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- ============ FOOTERS ============ -->
+    <footer class="site-footer">
+        <div class="footer-top">
+            <div class="footer-brand">
+                <img src="{% static 'store/img/british.png' %}" alt="British Airways" class="footer-logo">
+                <span class="footer-brand-text">British Airways</span>
+            </div>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Cookie Policy</a>
+                <a href="#">Terms of Use</a>
+                <a href="{% url 'support' %}">Contact Us</a>
+            </div>
         </div>
-        <div class="cookie-buttons">
-            <button class="cookie-btn">Accept all cookies</button>
-            <button class="cookie-btn">Accept only essential cookies</button>
+        <div class="footer-bottom">
+            <span>&copy; 2026 British Airways. All rights reserved.</span>
+           
         </div>
     </footer>
 
-    <script>
-        const menuToggle = document.querySelector('.menu-toggle');
-        const navMenu = document.querySelector('nav');
 
-        if (menuToggle && navMenu) {
-            menuToggle.addEventListener('click', function() {
-                navMenu.classList.toggle('nav-active');
+
+    <script>
+        // Highlight the current page in the mobile bottom nav
+        document.addEventListener('DOMContentLoaded', function () {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.mobile-nav a').forEach(link => {
+                const url = new URL(link.href, window.location.origin).pathname;
+                if (currentPath === url || (url !== '/' && currentPath.startsWith(url))) {
+                    link.classList.add('active');
+                }
             });
-        }
+        });
     </script>
     {% block extra_js %}{% endblock %}
 </body>

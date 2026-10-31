@@ -25,9 +25,17 @@ SECRET_KEY = 'django-insecure-ahw@(v2zyav9rjx$yqhgjer+qfa$xiv7k1d37!q$0w8ylwba3k
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# Allow your localtunnel/ngrok URL to access the server
+ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['192.168.100.74', '127.0.0.1','.loca.lt']
 
+# Tell Django to trust the HTTPS connection coming from the tunnel
+CSRF_TRUSTED_ORIGINS = [
+    'https://dull-houses-guess.loca.lt',
+]
 
+# Tell Django that the tunnel is forwarding HTTPS traffic
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Application definition
 
 INSTALLED_APPS = [
@@ -80,6 +88,16 @@ DATABASES = {
     }
 }
 
+
+# WebRTC ICE servers. STUN is enough on most networks; add a TURN server
+# (e.g. coturn) for users behind strict/corporate NATs so calls never fail to connect.
+WEBRTC_ICE_SERVERS = [
+    {'urls': ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302']},
+    # {'urls': 'turn:turn.example.com:3478', 'username': 'user', 'credential': 'pass'},
+]
+
+# Seconds a call may ring before it is marked as missed.
+CALL_RING_TIMEOUT = 45
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

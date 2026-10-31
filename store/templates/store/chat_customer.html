@@ -1,0 +1,462 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Chat with us — SkyClaim Demo{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chat-shell { display: flex; justify-content: center; padding: 100px 20px 40px; flex: 1; }
+    .chat-box { background: #fff; width: 100%; max-width: 780px; border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0,0,0,.15); display: flex; flex-direction: column;
+                overflow: hidden; height: calc(100vh - 240px); min-height: 480px; }
+
+    .chat-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+                 background: #01122c; color: #fff; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .chat-head .av { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+                     background: linear-gradient(135deg, #1b6ca8, #155584);
+                     display: flex; align-items: center; justify-content: center;
+                     font-weight: 700; color: #fff; font-size: 16px; }
+    .chat-head b { font-size: 16px; display: block; }
+    .chat-head small { display: block; font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+    .chat-log { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 20px; background: #e5e7eb;
+                display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth;
+                -webkit-overflow-scrolling: touch; }
+
+    .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px;
+           font-size: 15px; line-height: 1.45; position: relative; word-wrap: break-word;
+           overflow-wrap: break-word; word-break: break-word; }
+    .msg .meta { display: block; font-size: 11px; opacity: .65; margin-top: 4px; text-align: right; }
+    .msg.staff { align-self: flex-start; background: #fff; color: #111;
+                 border-bottom-left-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+    .msg.customer { align-self: flex-end; background: #1b6ca8; color: #fff;
+                    border-bottom-right-radius: 2px; }
+
+    /* WhatsApp-style image thumbnail: scaled to fit, never huge, keeps aspect ratio */
+    .msg .img-wrap { margin-top: 6px; position: relative; display: inline-block; line-height: 0; }
+    .msg img.chat-img { max-width: min(260px, 68vw); max-height: 320px; width: auto; height: auto;
+                        border-radius: 10px; display: block; cursor: zoom-in; background: #d1d5db; }
+    .msg .img-save { position: absolute; right: 8px; bottom: 8px; width: 34px; height: 34px;
+                     border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; border: none;
+                     display: flex; align-items: center; justify-content: center; font-size: 15px;
+                     text-decoration: none; cursor: pointer; opacity: .9; }
+    .msg .img-save:hover { opacity: 1; background: rgba(0,0,0,.75); }
+    .msg a.file-link { display: inline-block; padding: 8px 12px; background: rgba(255,255,255,.15);
+                       color: inherit; text-decoration: none; border-radius: 6px;
+                       font-size: 13px; margin-top: 6px; word-break: break-all; }
+    .msg.customer a.file-link { background: rgba(255,255,255,.25); }
+
+    .chat-input-area { background: #fff; border-top: 1px solid #e5e7eb; }
+    .chat-preview { display: none; padding: 10px 16px; background: #f3f4f6; border-bottom: 1px solid #e5e7eb;
+                    align-items: center; gap: 10px; font-size: 13px; color: #475569; }
+    .chat-preview img { height: 40px; width: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; flex-shrink: 0; }
+    .chat-preview span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-preview button { background: #dc2626; color: #fff; border: none; border-radius: 50%;
+                           width: 24px; height: 24px; cursor: pointer; flex-shrink: 0; }
+
+    .chat-input-row { display: flex; gap: 8px; padding: 12px 16px; align-items: flex-end; }
+    .chat-input-row textarea { flex: 1; resize: none; padding: 12px 16px; border-radius: 22px;
+                               border: 1px solid #d1d5db; font-size: 16px; line-height: 1.4;
+                               max-height: 120px; font-family: inherit; min-height: 44px; }
+    .chat-input-row textarea:focus { outline: none; border-color: #1b6ca8; }
+    .chat-input-row .attach { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+                              background: #e5e7eb; color: #334155; cursor: pointer;
+                              display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .chat-input-row .attach input { display: none; }
+    .chat-input-row .send-btn { border: none; background: #1b6ca8; color: #fff;
+                                width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+                                cursor: pointer; font-size: 18px; display: flex;
+                                align-items: center; justify-content: center; }
+    .chat-input-row .send-btn:hover { background: #155584; }
+    .chat-input-row .send-btn:disabled { opacity: .5; cursor: default; }
+
+    /* Full-screen image viewer (tap a photo to open, then save) */
+    .lightbox { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,.92);
+                display: none; flex-direction: column; }
+    .lightbox.on { display: flex; }
+    .lightbox .lb-bar { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 16px;
+                        padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+    .lightbox .lb-bar a, .lightbox .lb-bar button { background: rgba(255,255,255,.15); color: #fff;
+                        border: none; border-radius: 8px; padding: 10px 16px; font-size: 14px;
+                        font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex;
+                        align-items: center; gap: 6px; }
+    .lightbox .lb-bar a:hover, .lightbox .lb-bar button:hover { background: rgba(255,255,255,.3); }
+    .lightbox .lb-stage { flex: 1; display: flex; align-items: center; justify-content: center;
+                          padding: 0 12px calc(16px + env(safe-area-inset-bottom, 0px)); min-height: 0; }
+    .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+
+    @media (max-width: 768px) {
+        .chat-shell { padding: 90px 8px 20px; }
+        .chat-box { height: calc(100dvh - 180px); min-height: 400px; border-radius: 10px; }
+        .chat-head { padding: 12px 14px; }
+        .chat-head b { font-size: 15px; }
+        .chat-head small { font-size: 11px; }
+        .chat-log { padding: 14px; gap: 8px; }
+        .msg { max-width: 88%; font-size: 14.5px; padding: 9px 13px; }
+        .chat-input-row { padding: 10px 10px; gap: 6px; }
+        .chat-input-row textarea { font-size: 16px; padding: 10px 14px; min-height: 42px; }
+        .chat-input-row .attach, .chat-input-row .send-btn { width: 42px; height: 42px; font-size: 18px; }
+        .chat-preview { padding: 8px 12px; font-size: 12px; }
+    }
+
+    @media (max-width: 400px) {
+        .chat-shell { padding: 84px 6px 16px; }
+        .msg { max-width: 92%; }
+        .chat-head .av { width: 34px; height: 34px; font-size: 14px; }
+    }
+
+    /* Call button in the chat header + full-screen call screen (WhatsApp-style) */
+    .call-btn { margin-left: auto; width: 40px; height: 40px; border-radius: 50%; border: none;
+                background: #25d366; color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0;
+                display: flex; align-items: center; justify-content: center; }
+    .call-btn:hover { background: #1ebe5d; }
+    .call-screen { position: fixed; inset: 0; z-index: 1500; background: linear-gradient(180deg,#075e54,#128c7e);
+                   color: #fff; display: none; flex-direction: column; align-items: center; justify-content: space-between;
+                   text-align: center; padding: calc(28px + env(safe-area-inset-top,0)) 16px calc(32px + env(safe-area-inset-bottom,0)); }
+    .call-screen.on { display: flex; }
+    .call-screen .cs-top { margin-top: 9vh; }
+    .call-screen.has-screen .cs-top { margin-top: 0; }
+    .call-screen .avatar { width: 96px; height: 96px; border-radius: 50%; background: rgba(255,255,255,.18);
+                           display: flex; align-items: center; justify-content: center; font-size: 42px; margin: 0 auto 14px; }
+    .call-screen .who { font-size: 22px; font-weight: 600; }
+    .call-screen .cstatus { opacity: .9; margin-top: 8px; min-height: 1.3em; }
+    .call-screen .ctimer { font-variant-numeric: tabular-nums; margin-top: 4px; min-height: 1.3em; }
+    .call-screen .cscreen { flex: 1; min-height: 0; width: 100%; display: none; align-items: center; margin: 14px 0; }
+    .call-screen .cscreen.on { display: flex; }
+    .call-screen .cscreen video { width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; background: #000; }
+    .call-controls { display: flex; gap: 22px; justify-content: center; }
+    .cc-ctrl { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; }
+    .cc-round { width: 62px; height: 62px; border-radius: 50%; border: none; font-size: 22px; cursor: pointer;
+                display: flex; align-items: center; justify-content: center; }
+    .cc-soft { background: rgba(255,255,255,.2); color: #fff; }
+    .cc-soft.on { background: #fff; color: #075e54; }
+    .cc-end { background: #ea4335; color: #fff; }
+    .cc-answer { background: #25d366; color: #fff; }
+    .call-screen.ringing .avatar { animation: cpulse 1.4s infinite; }
+    @keyframes cpulse { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,.5); } 100% { box-shadow: 0 0 0 22px rgba(255,255,255,0); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-shell">
+    <div class="chat-box">
+        <div class="chat-head">
+            <div class="av">SC</div>
+            <div>
+                <b>SkyClaim Demo Support</b>
+                <small>We typically reply within a few hours</small>
+            </div>
+            {% if call_claim_id %}<button class="call-btn" id="start-call" title="Call support">📞</button>{% endif %}
+        </div>
+
+        <div class="chat-log" id="chat-log"></div>
+
+        <div class="chat-input-area">
+            <div class="chat-preview" id="chat-preview">
+                <img id="preview-img" src="" alt="Preview">
+                <span id="preview-name">File selected</span>
+                <button type="button" onclick="clearFile()">✕</button>
+            </div>
+
+            <form class="chat-input-row" id="chat-form" enctype="multipart/form-data">
+                <label class="attach">
+                    📎
+                    <input type="file" name="attachment" id="chat-file" accept="image/*,.pdf" onchange="previewFile(this)">
+                </label>
+                <textarea name="body" id="chat-body" rows="1" placeholder="Type a message…"></textarea>
+                <button type="submit" class="send-btn" id="send-btn">➤</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Tap-to-view image viewer, shared by every image bubble -->
+<div class="lightbox" id="lightbox">
+    <div class="lb-bar">
+        <a id="lb-download" href="#" download>⬇ Save</a>
+        <button type="button" id="lb-close">✕ Close</button>
+    </div>
+    <div class="lb-stage"><img id="lb-img" src="" alt="Attachment"></div>
+</div>
+
+<script>
+(function () {
+    const form      = document.getElementById('chat-form');
+    const log       = document.getElementById('chat-log');
+    const fileInput = document.getElementById('chat-file');
+    const bodyInput = document.getElementById('chat-body');
+    const sendBtn   = document.getElementById('send-btn');
+    const preview   = document.getElementById('chat-preview');
+    const previewImg= document.getElementById('preview-img');
+    const previewName = document.getElementById('preview-name');
+    const csrf      = "{{ csrf_token }}";
+
+    // Lightbox
+    const lightbox  = document.getElementById('lightbox');
+    const lbImg     = document.getElementById('lb-img');
+    const lbDownload= document.getElementById('lb-download');
+
+    let lastId = 0;
+    const seen = new Set();   // every message id we have already drawn — stops duplicates
+    let polling = false;      // stops two polls overlapping
+
+    function escapeHtml(s) {
+        return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function isImage(name, url) {
+        return /\.(jpg|jpeg|png|gif|webp|bmp|heic|avif)$/i.test(name || url || '');
+    }
+    function nearBottom() {
+        return log.scrollHeight - log.scrollTop - log.clientHeight < 140;
+    }
+
+    function openLightbox(url, name) {
+        lbImg.src = url;
+        lbDownload.href = url;
+        lbDownload.setAttribute('download', name || 'image');
+        lightbox.classList.add('on');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox() {
+        lightbox.classList.remove('on');
+        lbImg.src = '';
+        document.body.style.overflow = '';
+    }
+    document.getElementById('lb-close').addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (e) => { if (e.target === lightbox || e.target.classList.contains('lb-stage')) closeLightbox(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+
+    function renderMessage(m) {
+        if (seen.has(m.id)) return;   // already on screen — skip, no duplicate
+        seen.add(m.id);
+
+        const stick = nearBottom();
+        const isMine = m.sender === 'customer';
+        const div = document.createElement('div');
+        div.className = 'msg ' + (isMine ? 'customer' : 'staff');
+
+        if (m.body) {
+            const b = document.createElement('div');
+            b.textContent = m.body;   // textContent = safe, keeps line breaks as typed
+            b.style.whiteSpace = 'pre-wrap';
+            div.appendChild(b);
+        }
+
+        if (m.attachment) {
+            const url = m.attachment;
+            const name = m.attachment_name || 'file';
+            if (isImage(name, url)) {
+                const wrap = document.createElement('div');
+                wrap.className = 'img-wrap';
+                const img = document.createElement('img');
+                img.className = 'chat-img';
+                img.src = url; img.alt = name; img.loading = 'lazy';
+                img.addEventListener('click', () => openLightbox(url, name));
+                const save = document.createElement('a');
+                save.className = 'img-save'; save.href = url; save.title = 'Save image';
+                save.setAttribute('download', name); save.textContent = '⬇';
+                save.addEventListener('click', (e) => e.stopPropagation());
+                wrap.appendChild(img); wrap.appendChild(save);
+                div.appendChild(wrap);
+            } else {
+                const a = document.createElement('a');
+                a.className = 'file-link'; a.href = url; a.target = '_blank';
+                a.setAttribute('download', name); a.textContent = '📎 ' + name;
+                div.appendChild(a);
+            }
+        }
+
+        const meta = document.createElement('span');
+        meta.className = 'meta';
+        meta.textContent = new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        div.appendChild(meta);
+
+        log.appendChild(div);
+        if (stick) log.scrollTop = log.scrollHeight;
+    }
+
+    async function poll() {
+        if (polling) return;           // never let two polls run together
+        polling = true;
+        try {
+            const r = await fetch(`{% url 'chat_customer_messages' %}?since=${lastId}`);
+            const d = await r.json();
+            if (d.ok && d.messages.length) {
+                d.messages.forEach(m => {
+                    lastId = Math.max(lastId, m.id);
+                    renderMessage(m);
+                });
+            }
+        } catch (_) {} finally {
+            polling = false;
+        }
+    }
+
+    window.previewFile = function(input) {
+        const file = input.files[0];
+        if (file) {
+            preview.style.display = 'flex';
+            previewName.textContent = file.name;
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = e => { previewImg.src = e.target.result; previewImg.style.display = 'block'; };
+                reader.readAsDataURL(file);
+            } else {
+                previewImg.src = ''; previewImg.style.display = 'none';
+            }
+        }
+    };
+
+    window.clearFile = function() {
+        fileInput.value = '';
+        preview.style.display = 'none';
+        previewImg.src = '';
+    };
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = bodyInput.value.trim();
+        const file = fileInput.files[0];
+        if (!body && !file) return;
+
+        bodyInput.value = '';
+        bodyInput.style.height = 'auto';
+        clearFile();
+        sendBtn.disabled = true;       // block double-send while this one is in flight
+
+        const fd = new FormData();
+        if (body) fd.append('body', body);
+        if (file) fd.append('attachment', file);
+
+        try {
+            await fetch("{% url 'chat_customer_send' %}", {
+                method: 'POST',
+                headers: {'X-CSRFToken': csrf},
+                body: fd,
+            });
+            await poll();              // show the new message (dedupe keeps it single)
+        } catch (_) {} finally {
+            sendBtn.disabled = false;
+        }
+    });
+
+    bodyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            form.requestSubmit();
+        }
+    });
+
+    bodyInput.addEventListener('input', () => {
+        bodyInput.style.height = 'auto';
+        bodyInput.style.height = Math.min(bodyInput.scrollHeight, 120) + 'px';
+    });
+
+    poll();
+    setInterval(poll, 1500);
+})();
+</script>
+
+{% if call_claim_id %}
+<!-- WhatsApp-style voice call, reusing the existing call engine (keyed to the claim) -->
+<div class="call-screen" id="call-screen">
+    <div class="cs-top">
+        <div class="avatar">🎧</div>
+        <div class="who" id="call-who">Claims Support</div>
+        <div class="cstatus" id="call-status"></div>
+        <div class="ctimer" id="call-timer"></div>
+    </div>
+    <div class="cscreen" id="call-screen-view">
+        <video id="call-video" autoplay playsinline muted></video>
+    </div>
+    <div class="call-controls">
+        <span class="cc-ctrl" id="cc-answer-w" style="display:none"><button class="cc-round cc-answer" id="cc-answer" aria-label="Answer">📞</button>Answer</span>
+        <span class="cc-ctrl" id="cc-mute-w" style="display:none"><button class="cc-round cc-soft" id="cc-mute" aria-label="Mute">🎙️</button><span id="cc-mute-l">Mute</span></span>
+        <span class="cc-ctrl" id="cc-share-w" style="display:none"><button class="cc-round cc-soft" id="cc-share" aria-label="Share screen">🖥️</button><span id="cc-share-l">Share</span></span>
+        <span class="cc-ctrl"><button class="cc-round cc-end" id="cc-end" aria-label="End call">✖</button><span id="cc-end-l">End</span></span>
+    </div>
+</div>
+
+{{ ice_servers|json_script:"ice-servers" }}
+<script src="{% static 'calls/callcenter.js' %}"></script>
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const screen = $('call-screen');
+    const show = (el, on) => { el.style.display = on ? '' : 'none'; };
+    let incoming = false;
+
+    const cc = new CallCenter({
+        side: 'customer',
+        iceServers: JSON.parse($('ice-servers').textContent),
+        urls: {
+            start: "{% url 'start_call' %}",
+            incoming: "{% url 'incoming_calls' %}",
+            detail: (id) => `/api/calls/${id}/`,
+            answer: (id) => `/api/calls/${id}/answer/`,
+            end: (id) => `/api/calls/${id}/end/`,
+        },
+        onState(state, info) {
+            // normalise both engine naming schemes
+            if (state === 'calling') state = 'ringing';
+            if (state === 'active') state = 'connected';
+            const inCall = !['idle', 'ended', 'missed', 'declined'].includes(state);
+            const talking = ['connected', 'reconnecting'].includes(state);
+            screen.classList.toggle('on', inCall || incoming);
+            screen.classList.toggle('ringing', state === 'ringing' || incoming);
+            show($('cc-answer-w'), false);
+            show($('cc-mute-w'), talking);
+            show($('cc-share-w'), ['connecting','connected','reconnecting'].includes(state));
+            $('cc-mute').classList.remove('on'); $('cc-mute-l').textContent = 'Mute';
+            $('call-status').textContent = {
+                ringing: 'Calling…', connecting: 'Connecting…', connected: 'Connected',
+                reconnecting: 'Reconnecting…', ended: (info && info.reason) || 'Call ended',
+                missed: 'No answer', declined: 'Call declined', idle: '',
+            }[state] || '';
+            if (!inCall) { $('call-timer').textContent = ''; incoming = false;
+                           setTimeout(() => { if (cc.state === 'idle' || cc.state === 'ended') screen.classList.remove('on'); }, 1800); }
+        },
+        onIncoming(call) {
+            incoming = !!call;
+            if (call) {
+                screen.classList.add('on'); screen.classList.add('ringing');
+                $('call-status').textContent = 'Incoming call…';
+                show($('cc-answer-w'), true); show($('cc-mute-w'), false); show($('cc-share-w'), false);
+            } else {
+                show($('cc-answer-w'), false);
+                screen.classList.remove('ringing');
+                // only close the screen if there is NO live call (never mid-call)
+                if (['idle', 'ended', 'missed', 'declined'].includes(cc.state)) screen.classList.remove('on');
+            }
+        },
+        onTimer(t) { $('call-timer').textContent = t; },
+        onError(msg) { $('call-status').textContent = msg; },
+        onRemoteScreen(stream) {
+            const v = $('call-video');
+            $('call-screen-view').classList.toggle('on', !!stream);
+            screen.classList.toggle('has-screen', !!stream);
+            v.srcObject = stream;
+            if (stream) v.play().catch(() => {});
+        },
+        onLocalScreen(on) {
+            $('cc-share').classList.toggle('on', on);
+            $('cc-share-l').textContent = on ? 'Stop' : (cc.canShareScreen() ? 'Share' : 'Camera');
+        },
+    });
+
+    $('start-call').addEventListener('click', () => cc.dial());
+    $('cc-answer').addEventListener('click', () => cc.answer());
+    $('cc-end').addEventListener('click', () => { if (incoming && !['connected','active','reconnecting'].includes(cc.state)) cc.decline(); else cc.hangup(); incoming = false; });
+    $('cc-mute').addEventListener('click', () => {
+        const m = cc.toggleMute();
+        $('cc-mute').classList.toggle('on', m); $('cc-mute-l').textContent = m ? 'Unmute' : 'Mute';
+    });
+    const CAM_ONLY = !cc.canShareScreen();  // no screen capture = phone -> use camera
+    if (CAM_ONLY) { $('cc-share').textContent = '📷'; $('cc-share-l').textContent = 'Camera'; }
+    $('cc-share').addEventListener('click', () => (cc.screenTrack ? cc.stopScreenShare() : cc.startVideoShare()));
+
+    cc.startIncomingPolling();   // so the customer also gets rung if staff calls
+})();
+</script>
+{% endif %}
+{% endblock %}
